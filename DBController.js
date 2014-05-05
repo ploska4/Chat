@@ -11,8 +11,8 @@ connection.connect(function(err) {
 });
 
 
-function createUser(_name, _email, _password, callback) {
- 	var user  = {name: _name, password: _password, email:_email};
+function createUser(_name, _email, _password, _hash, callback) {
+ 	var user  = {name: _name, password: _password, email:_email, hash:_hash};
 	var query = connection.query('INSERT INTO users SET ?', user, function(err, result) {
 		 if (err) throw err;
 		 else
@@ -24,3 +24,4 @@ console.log(query.sql);
 }
 
 exports.createUser = createUser;
+exports.connection = connection;
