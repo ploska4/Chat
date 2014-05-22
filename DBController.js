@@ -11,12 +11,12 @@ connection.connect(function(err) {
 });
 
 
-function createUser(_name, _email, _password, _hash, callback) {
- 	var user  = {name: _name, password: _password, email:_email, hash:_hash};
+function createUser(_name, _email, _password, _hash, imagename, callback) {
+ 	var user  = {name: _name, password: _password, email:_email, hash:_hash, picture:imagename};
 	var query = connection.query('INSERT INTO users SET ?', user, function(err, result) {
 		 if (err) throw err;
 		 else
-		  console.log('Inserted ID: '+result.insertId);
+		 console.log('Inserted ID: '+result.insertId);
 		 callback.redirect('/login');
   // Neat!
 });

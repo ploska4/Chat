@@ -1,4 +1,4 @@
-window.onload = function() {
+$( document ).ready(function() {
  
     var messages = [];
     var socket = io.connect('http://localhost:3700');
@@ -14,15 +14,53 @@ window.onload = function() {
     var content = document.getElementById("content");
     var name = document.getElementById("name");
 
+    var users_1 = [];
+
     
+    var userhash = $.cookie("userhash");
+
+
+    /*
+    ********* Socket.IO handlers ********* 
+    */
+    
+     socket.on('connect', function (){
+        console.log('successfully established a working connection ');
+        socket.emit('join', { hash: $.cookie("userhash"), message: 'CONNECTED'});
+
+     });
+    
+    
+
+
+    socket.on('userjoined', function (data){
+       addUser(data.nickname, data.avatar);
+       users_1.push({name:data.nickname, picture:data.avatar});
+     });
+
+    socket.on('userlist', function (data){       
+        var arr = data.userlist;
+
+
+
+        arr.forEach(function(entry) {
+        users_1.push(entry);
+        addUser(entry.name, entry.picture);
+        }
+        );
+     });
      
+
+    socket.on('userlogout', function (data){
+       removeUser(data.nickname);
+     });
+
     socket.on('message', function (data) {
         if(data.message) {
             messages.push(data);
-            addMessage('Server', data.message);
+            addMessage(data.sender, data.message);
         }
-        else
-        addMessage('Server','No data received');    
+        
     });
     
 
@@ -31,6 +69,7 @@ window.onload = function() {
     */
     keyPressed = function(e) {
         if(e.keyCode == 13) {
+
            sendMessage();
         }     
     };
@@ -40,7 +79,8 @@ window.onload = function() {
     ********* On AddUser button clicked ********* 
     */
     addUserButton.onclick = function() {       
-        addUser("Vasia98");      
+        addUser("Vasia98");     
+
     };
 
 
@@ -57,12 +97,15 @@ window.onload = function() {
     ********* Send message function********* 
     */
     sendMessage = function() {
-         //addMessage("Vasia", field.value);        
-         socket.emit('send', { message: field.value});
+         //addMessage("Vasia", field.value);   
+
+         socket.emit('send', { hash: $.cookie("userhash"), message: field.value});
 
          field.value = "";
       }
 
+
+  
     /*
     ********* Returns current date********* 
     */
@@ -96,10 +139,11 @@ window.onload = function() {
     /*
     ********* Adding new user to user panel********* 
     */
-    addUser = function(u_name) {
+    addUser = function(u_name,u_image) {
+       
 
-        var userbox =   '<li>';
-        userbox +=      '<small class="label label-success"><i class="fa fa-clock-o"></i></small>';
+        var userbox =   '<li id = "' + u_name + '">';
+        userbox +=      '<img src="' + u_image+ '" alt="user image" class="userimage"/>';
         userbox +=      '<span class="text">'+u_name+'</span>';
         userbox +=      '<div class="tools">';
         userbox +=      '<i class="fa fa-edit"></i>';
@@ -111,12 +155,53 @@ window.onload = function() {
     
     };
 
+
+     /*
+    ********* Adding new user to user panel********* 
+    */
+    removeUser = function(u_name) {
+
+        var user_to_remove = document.getElementById(u_name);
+        user_to_remove.parentNode.removeChild(user_to_remove);
+
+        var elem = undefined;
+        users_1.forEach(function(entry) {
+             if(entry.name == u_name)elem = entry;
+        });
+        var index = users_1.indexOf(elem);
+        if (index > -1) {
+           users_1.splice(index, 1);
+            }
+    
+    };
+
+     /*
+    ********* Get image by username********* 
+    */
+    getImage = function(u_name) {
+
+      var pict = undefined;
+      users_1.forEach(function(entry) {
+
+             if(entry.name == u_name)pict = entry.picture;
+        });
+
+      if(pict)
+      return pict;
+        else
+        return 'img/avatar3.png';    
+    };
+
     /*
     ********* Adding new message to chatpanel********* 
     */
      addMessage = function(u_name, message_text) {
+
+        var uimg = undefined;
+        uimg = getImage(u_name);
+
         var msg =   '<div class="item">';
-        msg +=      ' <img src="img/avatar3.png" alt="user image" class="offline"/>';
+        msg +=      ' <img src="'+ uimg +'" alt="user image" class="offline"/>';
         msg +=      '<p class="message">';
         msg +=      '<a href="#" class="name">';
         msg +=      '<small class="text-muted pull-right"><i class="fa fa-clock-o"></i> ';
@@ -128,13 +213,15 @@ window.onload = function() {
         msg +=      '</p>';
         msg +=      '</div>';
 
-       chat_box.innerHTML += msg;
-       chat_box.scrollTop = chat_box.scrollHeight;
+       chat_box.innerHTML   +=  msg;
+       chat_box.scrollTop   =   chat_box.scrollHeight;
     
     };
 
 
   field.onkeyup = keyPressed; 
  
-}
+});
+
+    
 

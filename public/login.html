@@ -8,7 +8,7 @@
     <meta name="author" content="">
     <link rel="shortcut icon" href="../../assets/ico/favicon.ico">
 
-    <title>Signin Template for Bootstrap</title>
+    <title>Signin</title>
 
     <!-- Bootstrap core CSS -->
     <link href="//netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap.min.css" rel="stylesheet">
@@ -31,8 +31,7 @@
 
 <div class="row" style="margin-top:20px">
     <div class="col-xs-12 col-sm-8 col-md-6 col-sm-offset-2 col-md-offset-3">
-    <div class="alert alert-danger">Please sign in to use this service</div>
-    <form role="form" method = "POST">
+      <form role="form" method = "POST" action = "/login" >
       <fieldset>
         <h2>Please Sign In</h2>
        
@@ -44,12 +43,13 @@
         </div>
         
         <hr class = "colorgraph">
+        {% autoescape false %}{{ alert }}{% endautoescape %}
         <div class="row">
           <div class="col-xs-6 col-sm-6 col-md-6">
                         <input type="submit" class="btn btn-lg btn-success btn-block" value="Sign In">
           </div>
           <div class="col-xs-6 col-sm-6 col-md-6">
-            <a href="register" class="btn btn-lg btn-primary btn-block">Register</a>
+            <a href="/register" class="btn btn-lg btn-primary btn-block">Register</a>
           </div>
         </div>
       </fieldset>
