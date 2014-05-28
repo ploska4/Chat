@@ -248,7 +248,7 @@ io.sockets.on('connection', function (socket) {
            
          socket.set('nickname', uname, function () {
          socket.set('picture', uavatar, function () {
-         socket.emit('message', { sender : "Server",  message: 'Welcome to the chat, <b>'+uname+'</b>!' });
+         socket.emit('identifymessage', { sender : "Server", name: uname, message: 'Welcome to the chat, <b>'+uname+'</b>!' });
          socket.broadcast.emit('userjoined', {nickname: uname, avatar:uavatar});
          socket.broadcast.emit('message', {sender: 'Server', message: 'User <b>'+uname+'</b> joined to chat.'});
 
@@ -261,8 +261,6 @@ io.sockets.on('connection', function (socket) {
                 console.log('No-name user');
               else
                 {      
-
-
                 entry.get('picture', function (err, pict) {
               if(err)
                 console.log('No picture for user' + name);
@@ -300,20 +298,63 @@ io.sockets.on('connection', function (socket) {
     });
     });
 
-    //Message received
+    //Message to all received
 
       socket.on('send', function (data) {
         socket.get('nickname', function (err, name) {
           if(err)
             console.log('Invalid user');
           else
-         io.sockets.emit('message', {sender: name, message: validator.escape(data.message)});
+          {
+             io.sockets.emit('message', {sender: name, message: validator.escape(data.message)});
+          }
+    });
+     
+    });
+
+  //Message to some user 
+
+      socket.on('sendto', function (data) {
+        socket.get('nickname', function (err, name) {
+          if(err)
+            console.log('Invalid user');
+          else
+          {
+             sendTo(data.target, name, data.message, function(result){
+              if(result)
+                socket.emit('privatemessagerespond', { sender : name, person : data.target,  message: data.message }); 
+             });
+          }
     });
      
     });
 
   });
 
+
+/*
+*************** Send data to specific client  ************** 
+*/
+function sendTo(target, sender, message, callback) {
+         var clients = io.sockets.clients();
+         clients.forEach(function(entry) {
+          entry.get('nickname', function (err, name) {
+              if(err)
+                console.log('No-name user');
+              else
+                {      
+                    if(target == name)
+                    {
+                      entry.emit('privatemessage', {sender: sender, message: validator.escape(message)});
+                      callback(true);
+                      return;
+                    }
+                }
+               });
+            });
+
+    callback(false);     
+}
 
 
 

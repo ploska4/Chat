@@ -9,7 +9,8 @@ $( document ).ready(function() {
 
     var field = document.getElementById("message-input-form"); 
     var chat_box = document.getElementById("chat-box");   
-       
+
+    var myname = undefined;       
 
     var content = document.getElementById("content");
     var name = document.getElementById("name");
@@ -18,6 +19,10 @@ $( document ).ready(function() {
 
     
     var userhash = $.cookie("userhash");
+
+    var pageNum = 1;
+
+    var target = 'home';
 
 
     /*
@@ -40,9 +45,6 @@ $( document ).ready(function() {
 
     socket.on('userlist', function (data){       
         var arr = data.userlist;
-
-
-
         arr.forEach(function(entry) {
         users_1.push(entry);
         addUser(entry.name, entry.picture);
@@ -55,6 +57,7 @@ $( document ).ready(function() {
        removeUser(data.nickname);
      });
 
+
     socket.on('message', function (data) {
         if(data.message) {
             messages.push(data);
@@ -62,7 +65,27 @@ $( document ).ready(function() {
         }
         
     });
-    
+
+     socket.on('identifymessage', function (data) {
+        if(data.message && data.name) {
+            myname = data.name;
+            addMessage(data.sender, data.message);
+        }        
+    });
+
+    socket.on('privatemessage', function (data) {
+        if(data.message) {
+            addPrivateMessage(data.sender, data.sender, data.message);
+        }
+        
+    });
+
+    socket.on('privatemessagerespond', function (data) {
+        if(data.message) {
+            addPrivateMessage(data.person, data.sender, data.message);
+        }
+        
+    });
 
     /*
     ********* Function KeyPress********* 
@@ -72,15 +95,6 @@ $( document ).ready(function() {
 
            sendMessage();
         }     
-    };
-
-
-    /*
-    ********* On AddUser button clicked ********* 
-    */
-    addUserButton.onclick = function() {       
-        addUser("Vasia98");     
-
     };
 
 
@@ -97,9 +111,13 @@ $( document ).ready(function() {
     ********* Send message function********* 
     */
     sendMessage = function() {
-         //addMessage("Vasia", field.value);   
+         //addMessage("Vasia", field.value);
+         if(field.value == "")return;   
 
-         socket.emit('send', { hash: $.cookie("userhash"), message: field.value});
+         if(target == 'home')
+            socket.emit('send', { hash: $.cookie("userhash"), message: field.value});
+         else 
+            socket.emit('sendto', { hash: $.cookie("userhash"), message: field.value, target: target});
 
          field.value = "";
       }
@@ -146,7 +164,7 @@ $( document ).ready(function() {
         userbox +=      '<img src="' + u_image+ '" alt="user image" class="userimage"/>';
         userbox +=      '<span class="text">'+u_name+'</span>';
         userbox +=      '<div class="tools">';
-        userbox +=      '<i class="fa fa-edit"></i>';
+        userbox +=      '<i class="fa fa-edit" onClick=addTab("'+u_name+'");></i>';
         userbox +=      '<i class="fa fa-trash-o"></i>';
         userbox +=      '</div>';
         userbox +=      '</li>';
@@ -218,9 +236,123 @@ $( document ).ready(function() {
     
     };
 
+     /*
+    ********* Adding new private message to chatpanel********* 
+    */
+     addPrivateMessage = function(u_name, from, message_text) {
+
+        var uimg = undefined;
+        uimg = getImage(from);
+
+        var msg =   '<div class="item">';
+        msg +=      ' <img src="'+ uimg +'" alt="user image" class="offline"/>';
+        msg +=      '<p class="message">';
+        msg +=      '<a href="#" class="name">';
+        msg +=      '<small class="text-muted pull-right"><i class="fa fa-clock-o"></i> ';
+        msg +=      getDateTime();
+        msg +=      '</small>';
+        msg +=      from;
+        msg +=      ' </a>';
+        msg +=      message_text;
+        msg +=      '</p>';
+        msg +=      '</div>';
+
+       
+       
+        addTab(u_name);             
+        
+        var _box = document.getElementById('chat-box-'+u_name);
+
+       _box.innerHTML   +=  msg;
+       _box.scrollTop   =   _box.scrollHeight;
+    
+    };
+
+
+
+   
+
+   /*
+    ********* Creating new tab to chat with selected user********* 
+   */
+   /*
+    $('#userlist').on('click', ' li div .fa-edit', function() {
+       addTab();
+    });
+    */
+
+
+
+
+
 
   field.onkeyup = keyPressed; 
+
+
+  /***************************
+  *         TABS CONTROL      *
+  ***************************/
+
+ /*
+    ********* Creating new tab********* 
+    */
+    addTab = function(userid)
+    {
+
+        if(myname == userid)return;
+        if(document.getElementById('chat-box-'+userid))return;
+
+        pageNum++;
+        $('#pageTab').append(
+            $('<li><a href="#pm'+userid+'" data-toggle="tab">'+userid+'&nbsp;<button class="close" title="Remove this page" type="button">×</button></a></li>'));
+     
+        $('#pageTabContent').append(
+            '<div class="tab-pane fade" id="pm'+userid+'">'+
+                '<div class="box box-success">'+
+                    '<div class="box-header">'+
+                       '<h3 class="box-title"><i class="fa fa-comments-o"></i>&nbsp;'+userid+'</h3>'+
+                            '<div class="box-tools pull-right" data-toggle="tooltip" title="Status">'+
+                          
+                            '</div>'+
+                            '</div>'+
+                             
+                            '<div class="box-body chat" id="chat-box-'+userid+'">'+                            
+
+
+                            '</div><!-- /.chat -->'+
+                            '</div>'
+
+            +'</div>');
+     
+       // $('#' + userid).tab('show');
+    }
+
+/**
+* Remove a Tab
+*/
+$('#pageTab').on('click', ' li a .close', function() {
+    var tabId = $(this).parents('li').children('a').attr('href');
+    $(this).parents('li').remove('li');
+    $(tabId).remove();
+
+    $('#pageTab a:first').tab('show');
+});
  
+/**
+ * Click Tab to show its contents
+ */
+$("#pageTab").on("click", "a", function(e) {
+    e.preventDefault();
+    $(this).tab('show');
+
+    if($(this).attr('href') == '#home')target='home';
+    else
+    target =  $(this).attr('href').substring(3);//$('.nav-tabs .active').attr('id');
+
+    console.log("Location: "+target);
+});
+ 
+
 });
 
     
