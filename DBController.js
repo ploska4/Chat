@@ -23,5 +23,18 @@ function createUser(_name, _email, _password, _hash, imagename, callback) {
 console.log(query.sql);
 }
 
+function saveMessage(sender, receiver, text, date) {
+
+	var receiver_query = (receiver == 0 || receiver == 'home')? '?' : '(SELECT id FROM users WHERE name = ? LIMIT 1)'; 
+	var query = connection.query('INSERT INTO messages (sender_id, receiver_id, text, date) VALUES ( (SELECT id FROM users WHERE name = ? LIMIT 1), '+ receiver_query +', ?, ?)', [sender, receiver, text, date], function(err, result) {
+	 if (err) throw err;
+		 else
+		 console.log('Inserted ID: '+result.insertId);		
+  // Neat!
+});
+console.log(query.sql);
+}
+
+exports.saveMessage = saveMessage;
 exports.createUser = createUser;
 exports.connection = connection;

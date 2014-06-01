@@ -38,12 +38,14 @@ $( document ).ready(function() {
     
 
 
-    socket.on('userjoined', function (data){
-       addUser(data.nickname, data.avatar);
-       users_1.push({name:data.nickname, picture:data.avatar});
-     });
+    socket.on('userlist', function (data){   
+       
+        users_1.forEach(function(usr) {
+        removeUser(usr.name);        
+        }
+        );
+        userlist.innerHTML = '';
 
-    socket.on('userlist', function (data){       
         var arr = data.userlist;
         arr.forEach(function(entry) {
         users_1.push(entry);
@@ -53,39 +55,32 @@ $( document ).ready(function() {
      });
      
 
+    socket.on('previousmessages', function (data){       
+        var arr = data.messages;
+        for(var i = 0; i < arr.length; i++) {
+        addDatedMessage(arr[i].target, arr[i].name, arr[i].text, arr[i].date, true);
+        }
+     });
+
     socket.on('userlogout', function (data){
        removeUser(data.nickname);
      });
 
 
-    socket.on('message', function (data) {
-        if(data.message) {
-            messages.push(data);
-            addMessage(data.sender, data.message);
-        }
-        
-    });
-
-     socket.on('identifymessage', function (data) {
+    socket.on('identifymessage', function (data) {
         if(data.message && data.name) {
             myname = data.name;
-            addMessage(data.sender, data.message);
+            addDatedMessage('home', data.sender, data.message);
         }        
     });
 
     socket.on('privatemessage', function (data) {
         if(data.message) {
-            addPrivateMessage(data.sender, data.sender, data.message);
+            addDatedMessage(data.person, data.sender, data.message, data.date);
         }
         
     });
 
-    socket.on('privatemessagerespond', function (data) {
-        if(data.message) {
-            addPrivateMessage(data.person, data.sender, data.message);
-        }
-        
-    });
 
     /*
     ********* Function KeyPress********* 
@@ -111,13 +106,10 @@ $( document ).ready(function() {
     ********* Send message function********* 
     */
     sendMessage = function() {
-         //addMessage("Vasia", field.value);
+
          if(field.value == "")return;   
 
-         if(target == 'home')
-            socket.emit('send', { hash: $.cookie("userhash"), message: field.value});
-         else 
-            socket.emit('sendto', { hash: $.cookie("userhash"), message: field.value, target: target});
+         socket.emit('sendto', { hash: $.cookie("userhash"), message: field.value, target: target});
 
          field.value = "";
       }
@@ -127,17 +119,15 @@ $( document ).ready(function() {
     /*
     ********* Returns current date********* 
     */
-    function getDateTime() {
-        var now     = new Date(); 
+    function getDateTime(date) {
+        var now     = (typeof date !== 'undefined')?new Date(date*1000):new Date(); 
         var year    = now.getFullYear();
-        var month   = now.getMonth()+1; 
+        var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
         var day     = now.getDate();
         var hour    = now.getHours();
         var minute  = now.getMinutes();
         var second  = now.getSeconds(); 
-        if(month.toString().length == 1) {
-            var month = '0'+month;
-        }
+       
         if(day.toString().length == 1) {
             var day = '0'+day;
         }   
@@ -150,7 +140,11 @@ $( document ).ready(function() {
         if(second.toString().length == 1) {
             var second = '0'+second;
         }   
-        var dateTime = hour+':'+minute+':'+second;   
+        
+        var dateTime = '<i class="fa fa-clock-o"></i>' + hour+':'+minute+':'+second;
+        if (day !== new Date().getDate() && now.getMonth() !== new Date().getMonth()) 
+            dateTime = day + ' ' + months[now.getMonth()] + ' on &nbsp;' + dateTime;
+
         return dateTime;
     }
 
@@ -164,8 +158,7 @@ $( document ).ready(function() {
         userbox +=      '<img src="' + u_image+ '" alt="user image" class="userimage"/>';
         userbox +=      '<span class="text">'+u_name+'</span>';
         userbox +=      '<div class="tools">';
-        userbox +=      '<i class="fa fa-edit" onClick=addTab("'+u_name+'");></i>';
-        userbox +=      '<i class="fa fa-trash-o"></i>';
+        userbox +=      '<i class="fa fa-edit" onClick=addTab("'+u_name+'",true);></i>';
         userbox +=      '</div>';
         userbox +=      '</li>';
 
@@ -211,35 +204,20 @@ $( document ).ready(function() {
     };
 
     /*
-    ********* Adding new message to chatpanel********* 
+    ********* Load Previous Messages********* 
     */
-     addMessage = function(u_name, message_text) {
-
-        var uimg = undefined;
-        uimg = getImage(u_name);
-
-        var msg =   '<div class="item">';
-        msg +=      ' <img src="'+ uimg +'" alt="user image" class="offline"/>';
-        msg +=      '<p class="message">';
-        msg +=      '<a href="#" class="name">';
-        msg +=      '<small class="text-muted pull-right"><i class="fa fa-clock-o"></i> ';
-        msg +=      getDateTime();
-        msg +=      '</small>';
-        msg +=      u_name;
-        msg +=      ' </a>';
-        msg +=      message_text;
-        msg +=      '</p>';
-        msg +=      '</div>';
-
-       chat_box.innerHTML   +=  msg;
-       chat_box.scrollTop   =   chat_box.scrollHeight;
-    
+    loadPreviousMessages = function(uname) {
+        socket.emit('getpreviousmessages', { hash: $.cookie("userhash"), target: uname});
     };
+
 
      /*
     ********* Adding new private message to chatpanel********* 
     */
-     addPrivateMessage = function(u_name, from, message_text) {
+
+      addDatedMessage = function(u_name, from, message_text, date, before) {
+
+        console.log('Message receiveed: '+message_text);
 
         var uimg = undefined;
         uimg = getImage(from);
@@ -248,22 +226,25 @@ $( document ).ready(function() {
         msg +=      ' <img src="'+ uimg +'" alt="user image" class="offline"/>';
         msg +=      '<p class="message">';
         msg +=      '<a href="#" class="name">';
-        msg +=      '<small class="text-muted pull-right"><i class="fa fa-clock-o"></i> ';
-        msg +=      getDateTime();
+        msg +=      '<small class="text-muted pull-right">';
+        msg +=      getDateTime(date);
         msg +=      '</small>';
         msg +=      from;
         msg +=      ' </a>';
         msg +=      message_text;
         msg +=      '</p>';
         msg +=      '</div>';
-
        
        
         addTab(u_name);             
         
         var _box = document.getElementById('chat-box-'+u_name);
 
-       _box.innerHTML   +=  msg;
+        if(typeof before !== 'undefined' )
+        _box.innerHTML = msg + _box.innerHTML;
+       else
+        _box.innerHTML   +=  msg;
+
        _box.scrollTop   =   _box.scrollHeight;
     
     };
@@ -296,7 +277,7 @@ $( document ).ready(function() {
  /*
     ********* Creating new tab********* 
     */
-    addTab = function(userid)
+    addTab = function(userid, by_click)
     {
 
         if(myname == userid)return;
@@ -312,7 +293,7 @@ $( document ).ready(function() {
                     '<div class="box-header">'+
                        '<h3 class="box-title"><i class="fa fa-comments-o"></i>&nbsp;'+userid+'</h3>'+
                             '<div class="box-tools pull-right" data-toggle="tooltip" title="Status">'+
-                          
+                            '<button type="button" class="btn btn-default" id="previous"> <span class="glyphicon glyphicon-backward"></span>&nbsp;Previous</button>' +
                             '</div>'+
                             '</div>'+
                              
@@ -324,7 +305,12 @@ $( document ).ready(function() {
 
             +'</div>');
      
-       // $('#' + userid).tab('show');
+       if(typeof by_click !== 'undefined' )
+       {
+          $('#pageTab a[href="#pm'+userid+'"]').tab('show');
+          target = userid;
+       }
+
     }
 
 /**
@@ -350,6 +336,14 @@ $("#pageTab").on("click", "a", function(e) {
     target =  $(this).attr('href').substring(3);//$('.nav-tabs .active').attr('id');
 
     console.log("Location: "+target);
+});
+
+
+/**
+* Load Previous Messages
+*/
+$('#pageTabContent').on('click', 'div div div div #previous', function() {
+     loadPreviousMessages(target);   
 });
  
 

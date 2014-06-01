@@ -249,11 +249,114 @@ io.sockets.on('connection', function (socket) {
          socket.set('nickname', uname, function () {
          socket.set('picture', uavatar, function () {
          socket.emit('identifymessage', { sender : "Server", name: uname, message: 'Welcome to the chat, <b>'+uname+'</b>!' });
-         socket.broadcast.emit('userjoined', {nickname: uname, avatar:uavatar});
-         socket.broadcast.emit('message', {sender: 'Server', message: 'User <b>'+uname+'</b> joined to chat.'});
+         socket.broadcast.emit('privatemessage', {sender: 'Server', person:'home', message: 'User <b>'+uname+'</b> joined to chat.'});
 
-        //Sending to user info about other users
-         var clients = io.sockets.clients();
+         //Sending to all users info about online users
+         io.sockets.emit('userlist', {userlist: getUserList()});
+
+          });
+         });
+        } else {
+          socket.emit('privatemessage', { sender : "Server", person:'home', date: getCurrentDate(),  message: 'Error: Bad authorization ...' });
+          }      
+      }); 
+     
+    });
+
+    //User disconnected
+    socket.on('disconnect', function() {
+     socket.get('nickname', function (err, name) {
+          if(err)
+            console.log('Invalid user disconnected');
+          else
+           { 
+         io.sockets.emit('userlist', {userlist: getUserList()});
+         io.sockets.emit('userlogout', {nickname: name});
+         socket.broadcast.emit('privatemessage', {sender: 'Server', person:'home', message: 'User <b>'+name+'</b> has been disconnected from server.'});
+       }
+    });
+    });
+
+    //Client requests previuos messages
+
+      socket.on('getpreviousmessages', function (data) {
+        socket.get('nickname', function (err, name) {
+          if(err)
+            console.log('Invalid user');
+          else
+          {
+           if (data.target == 'home')
+           {
+           var query = DB.connection.query('SELECT name, text, date, \'home\' AS target FROM messages' +
+                                           ' INNER JOIN users ON ( messages.sender_id = users.id ) '+   
+                                           ' WHERE receiver_id = ?'+
+                                           ' ORDER BY date DESC', [0], function(err, rows, fields) {
+                  console.log(query.sql);
+                  if (err) throw err;
+                  if (rows[0]) {
+                      io.sockets.emit('previousmessages', {messages: rows});
+                   }
+               });  
+
+
+            } // if (data.target == 'home')    
+
+            else
+              {
+                var query = DB.connection.query('SELECT name, text, date, ? AS target FROM messages'+
+                                                ' INNER JOIN users ON ( messages.sender_id = users.id AND'+
+                                                ' (messages.sender_id = (SELECT id FROM users WHERE name = ? LIMIT 1)'+
+                                                ' AND messages.receiver_id = (SELECT id FROM users WHERE name = ? LIMIT 1)'+
+                                                ' OR messages.sender_id = (SELECT id FROM users WHERE name = ? LIMIT 1)'+
+                                                ' AND messages.receiver_id = (SELECT id FROM users WHERE name = ? LIMIT 1)))'+
+                                                ' ORDER BY date DESC', [data.target, name, data.target, data.target, name], function(err, rows, fields) {
+                         console.log(query.sql);
+                         if (err) throw err;
+                         if (rows[0]) {
+                                io.sockets.emit('previousmessages', {messages: rows});
+                             }
+                         });  
+
+             } // (data.target != 'home')    
+             
+          }
+    });
+     
+    });
+
+  
+  //Message to some user 
+
+      socket.on('sendto', function (data) {
+        socket.get('nickname', function (err, name) {
+          if(err)
+            console.log('Invalid user');
+          else
+          {
+            console.log("TARGET: "+data.target + ' MSG: '+data.message);
+             sendTo(data.target, name, data.message, function(result){
+              if(result > 0)
+              {
+                if(result == 1)
+                socket.emit('privatemessage', { sender : name, person : data.target,  message: data.message }); 
+                DB.saveMessage(name, data.target, validator.escape(data.message), getCurrentDate());
+              }
+             });
+          }
+    });
+     
+    });
+
+  });
+
+
+/*
+*************** Returns list with all online users  ************** 
+*/
+
+function getUserList()
+{
+  var clients = io.sockets.clients();
          var arr = [];
          clients.forEach(function(entry) {
           entry.get('nickname', function (err, name) {
@@ -273,69 +376,30 @@ io.sockets.on('connection', function (socket) {
                 }
                });
             });
+    return arr;
+}
 
-         socket.emit('userlist', {userlist: arr});
+/*
+*************** Returns unix timestamp of current time  ************** 
+*/
 
-          });
-         });
-        } else {
-          socket.emit('message', { sender : "Server",  message: 'Error: Bad authorization ...' });
-          }      
-      }); 
-     
-    });
-
-    //User disconnected
-    socket.on('disconnect', function() {
-     socket.get('nickname', function (err, name) {
-          if(err)
-            console.log('Invalid user disconnected');
-          else
-           { 
-         io.sockets.emit('userlogout', {nickname: name});
-         socket.broadcast.emit('message', {sender: 'Server', message: 'User <b>'+name+'</b> has been disconnected from server.'});
-       }
-    });
-    });
-
-    //Message to all received
-
-      socket.on('send', function (data) {
-        socket.get('nickname', function (err, name) {
-          if(err)
-            console.log('Invalid user');
-          else
-          {
-             io.sockets.emit('message', {sender: name, message: validator.escape(data.message)});
-          }
-    });
-     
-    });
-
-  //Message to some user 
-
-      socket.on('sendto', function (data) {
-        socket.get('nickname', function (err, name) {
-          if(err)
-            console.log('Invalid user');
-          else
-          {
-             sendTo(data.target, name, data.message, function(result){
-              if(result)
-                socket.emit('privatemessagerespond', { sender : name, person : data.target,  message: data.message }); 
-             });
-          }
-    });
-     
-    });
-
-  });
-
+function getCurrentDate()
+{
+  return  Math.round((new Date()).getTime() / 1000);
+}
 
 /*
 *************** Send data to specific client  ************** 
 */
 function sendTo(target, sender, message, callback) {
+
+        if(target == 'home')
+        {
+        io.sockets.emit('privatemessage', { sender : sender, person : target,  message: message });  
+        callback(2);
+        return;
+        }
+
          var clients = io.sockets.clients();
          clients.forEach(function(entry) {
           entry.get('nickname', function (err, name) {
@@ -345,15 +409,15 @@ function sendTo(target, sender, message, callback) {
                 {      
                     if(target == name)
                     {
-                      entry.emit('privatemessage', {sender: sender, message: validator.escape(message)});
-                      callback(true);
+                      entry.emit('privatemessage', {sender: sender, person : sender, message: validator.escape(message)});
+                      callback(1);
                       return;
                     }
                 }
                });
             });
 
-    callback(false);     
+    callback(0);     
 }
 
 
