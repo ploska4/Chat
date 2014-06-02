@@ -77,6 +77,7 @@ $( document ).ready(function() {
     socket.on('privatemessage', function (data) {
         if(data.message) {
             addDatedMessage(data.person, data.sender, data.message, data.date);
+            addNotificationToTab(data.person);
         }
         
     });
@@ -154,7 +155,7 @@ $( document ).ready(function() {
     addUser = function(u_name,u_image) {
        
 
-        var userbox =   '<li id = "' + u_name + '">';
+        var userbox =   '<li id = "u_' + u_name + '">';
         userbox +=      '<img src="' + u_image+ '" alt="user image" class="userimage"/>';
         userbox +=      '<span class="text">'+u_name+'</span>';
         userbox +=      '<div class="tools">';
@@ -172,7 +173,12 @@ $( document ).ready(function() {
     */
     removeUser = function(u_name) {
 
-        var user_to_remove = document.getElementById(u_name);
+        var user_to_remove = document.getElementById('u_'+u_name);
+        if(!user_to_remove)
+            {
+                console.log('Try to remove undefined user: '+u_name);
+                return;
+            }
         user_to_remove.parentNode.removeChild(user_to_remove);
 
         var elem = undefined;
@@ -216,8 +222,6 @@ $( document ).ready(function() {
     */
 
       addDatedMessage = function(u_name, from, message_text, date, before) {
-
-        console.log('Message receiveed: '+message_text);
 
         var uimg = undefined;
         uimg = getImage(from);
@@ -281,11 +285,15 @@ $( document ).ready(function() {
     {
 
         if(myname == userid)return;
-        if(document.getElementById('chat-box-'+userid))return;
+        if(document.getElementById('chat-box-'+userid))
+            {
+                console.log('Tab "chat-box-'+userid+'" now found!')
+                return;
+            }
 
         pageNum++;
         $('#pageTab').append(
-            $('<li><a href="#pm'+userid+'" data-toggle="tab">'+userid+'&nbsp;<button class="close" title="Remove this page" type="button">×</button></a></li>'));
+            $('<li><a href="#pm'+userid+'" data-toggle="tab">'+userid+'&nbsp;<span class="label label-success" id="notif-'+userid+'"></span> &nbsp;<button class="close" title="Remove this page" type="button">×</button></a></li>'));
      
         $('#pageTabContent').append(
             '<div class="tab-pane fade" id="pm'+userid+'">'+
@@ -313,23 +321,31 @@ $( document ).ready(function() {
 
     }
 
-/**
-* Remove a Tab
+/*
+********* Notification about incoming messages********* 
 */
-$('#pageTab').on('click', ' li a .close', function() {
-    var tabId = $(this).parents('li').children('a').attr('href');
-    $(this).parents('li').remove('li');
-    $(tabId).remove();
-
-    $('#pageTab a:first').tab('show');
-});
+    addNotificationToTab = function(userid)
+    {
  
+         if(target == userid)            
+                return;
+          
+
+         var innerNum = parseInt(document.getElementById('notif-'+userid).innerHTML);
+         if(isNaN(innerNum)) innerNum = 0;
+         document.getElementById('notif-'+userid).innerHTML = innerNum + 1;
+    }
+
+
+
 /**
  * Click Tab to show its contents
  */
 $("#pageTab").on("click", "a", function(e) {
     e.preventDefault();
     $(this).tab('show');
+   
+    $(this).children('span').text('');
 
     if($(this).attr('href') == '#home')target='home';
     else
@@ -338,6 +354,22 @@ $("#pageTab").on("click", "a", function(e) {
     console.log("Location: "+target);
 });
 
+
+
+/**
+* Remove a Tab
+*/
+$('#pageTab').on('click', ' li a .close', function(e) {
+    e.stopPropagation();
+    var tabId = $(this).parents('li').children('a').attr('href');
+    $(this).parents('li').remove('li');
+    $(tabId).remove();
+
+    $('#pageTab a:first').tab('show');
+    target = 'home';
+    console.log("Closed. Location: "+target);
+});
+ 
 
 /**
 * Load Previous Messages

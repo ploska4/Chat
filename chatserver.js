@@ -338,7 +338,7 @@ io.sockets.on('connection', function (socket) {
               if(result > 0)
               {
                 if(result == 1)
-                socket.emit('privatemessage', { sender : name, person : data.target,  message: data.message }); 
+                socket.emit('privatemessage', { sender : name, person : data.target,  message:  validator.escape(data.message) }); 
                 DB.saveMessage(name, data.target, validator.escape(data.message), getCurrentDate());
               }
              });
@@ -395,7 +395,7 @@ function sendTo(target, sender, message, callback) {
 
         if(target == 'home')
         {
-        io.sockets.emit('privatemessage', { sender : sender, person : target,  message: message });  
+        io.sockets.emit('privatemessage', { sender : sender, person : target,  message:  validator.escape(message) });  
         callback(2);
         return;
         }
