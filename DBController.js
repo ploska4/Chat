@@ -18,7 +18,7 @@ function createUser(_name, _email, _password, _hash, imagename, callback) {
 		 else
 		 console.log('Inserted ID: '+result.insertId);
 		 callback.redirect('/login');
-  // Neat!
+
 });
 console.log(query.sql);
 }
@@ -30,7 +30,7 @@ function saveMessage(sender, receiver, text, date) {
 	 if (err) throw err;
 		 else
 		 console.log('Inserted ID: '+result.insertId);		
-  // Neat!
+ 
 });
 console.log(query.sql);
 }

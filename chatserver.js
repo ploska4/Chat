@@ -53,10 +53,6 @@ app.post('/login/error', function (req, res) {
   res.render('login', { alert : '  <div class="alert alert-danger"><b>User name or password is incorrect</b></div>'});
 });
 
-app.get('/secret', checkAuth, function (req, res) {
-  res.send('Auth OK');  
-});
-
 app.get('/register', function (req, res) {
   res.render('register', { title:"Create Account" });
 });
@@ -75,7 +71,7 @@ switch(req.params.id)
   break;
 
   case '3':
-  errmessage =  '<div class="alert alert-danger"><b>No image selected or wrong image format. Use only [jpg], [gif], [png] images</b></div>';
+  errmessage =  '<div class="alert alert-danger"><b>No image selected or wrong image format. Use only [jpg], [gif], [png] file types</b></div>';
   break;
 }
   res.render('register', { title:"Create Account", alert : errmessage });
@@ -103,7 +99,6 @@ app.post('/register', multipartMiddleware, function (req, res) {
             console.error("Wrong data, image was removed");
             _error = '1';
             res.redirect('/register/error/'+_error);
-            console.log(1111111111);
         });    
   }
 
@@ -122,7 +117,6 @@ app.post('/register', multipartMiddleware, function (req, res) {
             console.error("Wrong data, image was removed");
             _error = '2';
             res.redirect('/register/error/'+_error);
-           console.log(2222222222);
         });    
        
 
@@ -333,8 +327,7 @@ io.sockets.on('connection', function (socket) {
             console.log('Invalid user');
           else
           {
-            console.log("TARGET: "+data.target + ' MSG: '+data.message);
-             sendTo(data.target, name, data.message, function(result){
+              sendTo(data.target, name, data.message, function(result){
               if(result > 0)
               {
                 if(result == 1)
