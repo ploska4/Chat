@@ -315,7 +315,7 @@ io.sockets.on('connection', function (socket) {
            var query = DB.connection.query('SELECT name, text, date, \'home\' AS target FROM messages' +
                                            ' INNER JOIN users ON ( messages.sender_id = users.id ) '+   
                                            ' WHERE receiver_id = ?'+
-                                           ' ORDER BY date DESC', [0], function(err, rows, fields) {
+                                           ' ORDER BY date DESC  LIMIT 100', [0], function(err, rows, fields) {
                   console.log(query.sql);
                   if (err) throw err;
                   if (rows[0]) {
@@ -334,7 +334,7 @@ io.sockets.on('connection', function (socket) {
                                                 ' AND messages.receiver_id = (SELECT id FROM users WHERE name = ? LIMIT 1)'+
                                                 ' OR messages.sender_id = (SELECT id FROM users WHERE name = ? LIMIT 1)'+
                                                 ' AND messages.receiver_id = (SELECT id FROM users WHERE name = ? LIMIT 1)))'+
-                                                ' ORDER BY date DESC', [data.target, name, data.target, data.target, name], function(err, rows, fields) {
+                                                ' ORDER BY date DESC LIMIT 100 ', [data.target, name, data.target, data.target, name], function(err, rows, fields) {
                          console.log(query.sql);
                          if (err) throw err;
                          if (rows[0]) {

@@ -55,7 +55,9 @@ $( document ).ready(function() {
      });
      
 
-    socket.on('previousmessages', function (data){       
+    socket.on('previousmessages', function (data){    
+    $('#myModalHider').modal('hide');
+
         var arr = data.messages;
         for(var i = 0; i < arr.length; i++) {
         addDatedMessage(arr[i].target, arr[i].name, arr[i].text, arr[i].date, true);
@@ -270,7 +272,7 @@ $( document ).ready(function() {
         $('#pageTab li a[href="#pmSearch"] .close').trigger('click');
         return false;
     };
-
+ 
 
 
 
@@ -389,7 +391,9 @@ $('#pageTab').on('click', ' li a .close', function(e) {
 * Load Previous Messages
 */
 $('#pageTabContent').on('click', 'div div div div #previous', function() {
-     loadPreviousMessages(target);   
+     loadPreviousMessages(target);
+     $('#myModalHider').modal('show');
+   
 });
  
 

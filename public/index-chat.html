@@ -158,7 +158,12 @@
                                     <div class="box-tools pull-right" data-toggle="tooltip" title="Status">
                                         
                                      <button type="button" class="btn btn-default" id="previous"> <span class="glyphicon glyphicon-backward"></span>&nbsp;Previous</button>
-                                        
+
+ <!-- Button trigger modal -->
+
+
+
+                          
                                     </div>
                                 </div>
                                 <div class="box-body chat" id="chat-box-home">
@@ -238,6 +243,26 @@
         </div><!-- ./wrapper -->
 
         <!-- add new calendar event modal -->
+
+        <!-- Modal -->
+<div class="modal" id="myModalHider" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true" data-backdrop="static" data-keyboard="false">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        
+        <h4 class="modal-title" id="myModalLabel">Loading messages</h4>
+      </div>
+      <div class="modal-body">
+       <div class="progress progress-striped active">
+  <div class="progress-bar"  role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100" style="width: 100%">
+    <span class="sr-only">Loading...</span>
+  </div>
+</div>
+      </div>
+      
+    </div>
+  </div>
+</div>
 
         <!-- jQuery 2.0.2 -->
         <script src="http://ajax.googleapis.com/ajax/libs/jquery/2.0.2/jquery.min.js"></script>
