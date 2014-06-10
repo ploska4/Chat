@@ -62,6 +62,14 @@ $( document ).ready(function() {
         }
      });
 
+    socket.on('searchresults', function (data){       
+        var arr = data.messages;
+        for(var i = 0; i < arr.length; i++) {
+        addDatedMessage(arr[i].target, arr[i].name, arr[i].text, arr[i].date, true);
+        }
+        $('#pageTab a[href="#pmSearch"]').tab('show');
+     });
+
     socket.on('userlogout', function (data){
        removeUser(data.nickname);
      });
@@ -254,17 +262,14 @@ $( document ).ready(function() {
     };
 
 
-
-   
-
-   /*
-    ********* Creating new tab to chat with selected user********* 
-   */
-   /*
-    $('#userlist').on('click', ' li div .fa-edit', function() {
-       addTab();
-    });
-    */
+    doSearch = function()
+    {
+        if( $('#search-query').val() == '')return false;
+        socket.emit('getsearch', { search: $('#search-query').val()}); 
+        $('#search-query').val('');
+        $('#pageTab li a[href="#pmSearch"] .close').trigger('click');
+        return false;
+    };
 
 
 
@@ -295,23 +300,24 @@ $( document ).ready(function() {
         $('#pageTab').append(
             $('<li><a href="#pm'+userid+'" data-toggle="tab">'+userid+'&nbsp;<span class="label label-success" id="notif-'+userid+'"></span> &nbsp;<button class="close" title="Remove this page" type="button">×</button></a></li>'));
      
-        $('#pageTabContent').append(
-            '<div class="tab-pane fade" id="pm'+userid+'">'+
+       
+            var pagehtml = '<div class="tab-pane fade" id="pm'+userid+'">'+
                 '<div class="box box-success">'+
                     '<div class="box-header">'+
                        '<h3 class="box-title"><i class="fa fa-comments-o"></i>&nbsp;'+userid+'</h3>'+
-                            '<div class="box-tools pull-right" data-toggle="tooltip" title="Status">'+
-                            '<button type="button" class="btn btn-default" id="previous"> <span class="glyphicon glyphicon-backward"></span>&nbsp;Previous</button>' +
-                            '</div>'+
-                            '</div>'+
-                             
-                            '<div class="box-body chat" id="chat-box-'+userid+'">'+                            
-
-
+                            '<div class="box-tools pull-right" data-toggle="tooltip" title="Status">';
+                            if(userid !== 'Search')
+                            pagehtml += '<button type="button" class="btn btn-default" id="previous"> <span class="glyphicon glyphicon-backward"></span>&nbsp;Previous</button>';
+                            
+                            pagehtml += '</div>'+
+                            '</div>'+                             
+                            '<div class="box-body chat" id="chat-box-'+userid+'">'+ 
                             '</div><!-- /.chat -->'+
-                            '</div>'
+                            '</div>'+
+                            '</div>';
 
-            +'</div>');
+
+           $('#pageTabContent').append( pagehtml );
      
        if(typeof by_click !== 'undefined' )
        {
@@ -370,6 +376,14 @@ $('#pageTab').on('click', ' li a .close', function(e) {
     console.log("Closed. Location: "+target);
 });
  
+/**
+* Searchbutton
+*/
+ $('#search-btn').on('click', function(e) {
+    e.preventDefault();
+   doSearch();
+    
+});
 
 /**
 * Load Previous Messages

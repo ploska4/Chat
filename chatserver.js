@@ -271,6 +271,37 @@ io.sockets.on('connection', function (socket) {
     });
     });
 
+     //Client requests search
+
+      socket.on('getsearch', function (data) {
+        socket.get('nickname', function (err, name) {
+          if(err)
+            console.log('Invalid user');
+          else
+          {
+            var searchtxt= '%'+data.search+'%';
+
+            var query = DB.connection.query('SELECT name, text, date, \'Search\' AS target FROM messages'+
+                                                ' INNER JOIN users ON ( messages.sender_id = users.id AND '+
+                                                ' messages.text LIKE ? AND ' +
+                                                ' (messages.sender_id = (SELECT id FROM users WHERE name = ? LIMIT 1)'+    
+                                                ' OR messages.receiver_id = 0 '+        
+                                                ' OR messages.receiver_id = (SELECT id FROM users WHERE name = ? LIMIT 1)))'+
+                                                ' ORDER BY date DESC', [searchtxt, name, name], function(err, rows, fields) {
+                         console.log(query.sql);
+                         if (err) throw err;
+                         if (rows[0]) {
+                                io.sockets.emit('searchresults', {messages: rows});
+                             }
+                         });  
+
+
+             
+          }
+    });
+     
+    });
+
     //Client requests previuos messages
 
       socket.on('getpreviousmessages', function (data) {
